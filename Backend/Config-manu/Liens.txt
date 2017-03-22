@@ -1,0 +1,91 @@
+
+http://air.imag.fr/index.php/PM2M/2017/TP
+
+
+docker ps -a    -> list des containers
+
+
+
+InfluxDB
+docker pull tutum/influxdb
+docker run -d -p 8083:8083 -p 8086:8086 tutum/influxdb
+docker run --name bd -d -p 8083:8083 -p 8086:8086 -e ADMIN_USER="root" -e INFLUXDB_INIT_PWD="root" -e PRE_CREATE_DB="db1" tutum/influxdb:latest
+
+port 8083 (web)   192.168.99.100:8083
+port 8086 (HTTP API). Default credential: root:root. 
+
+docker start bd
+docker exec -it bd bash (docker exec bd ps / docker exec bd cat run.sh)
+#> influx
+     > SHOW DATABASES;
+> CREATE DATABASE power;
+> CREATE USER ff WITH PASSWORD 'f2f!';
+> GRANT ALL ON power TO ff;
+> CREATE RETENTION POLICY "un_an" ON power DURATION 365d REPLICATION 1 DEFAULT;
+     > SHOW RETENTION POLICIES ON power;
+> USE power;
+> INSERT powerval,device=captA,region=fr-grenoble value=0.69
+     > SELECT * FROM powerval
+> DROP MEASUREMENT powerval
+     
+
+curl -i -XPOST '192.168.99.100:8086/write?db=power' --data-binary 'powerval,host=captC value=0.64 1489425057660000000'
+
+
+
+
+
+NodeRed
+docker pull nodered/node-red-docker
+docker run -it -p 1880:1880 --name red nodered/node-red-docker
+
+docker exec -it red bash
+
+port 1880 (web)   192.168.99.100:1880
+
+node-red-contrib-influxdb 0.0.6
+http://flows.nodered.org/node/node-red-contrib-influxdb
+npm install node-red-contrib-influxdb dans ~ au dessus du répertoire node_modules
+arret / redemarrage red !!
+Tuto : https://www.npmjs.com/package/node-red-contrib-influxdb
+
+https://hub.docker.com/r/nodered/node-red-docker/
+
+Build image
+nodered dockerfile : https://hub.docker.com/r/nodered/node-red-docker/~/dockerfile/
+docker build -t mynodered .  [docker images -a][docker rmi mynodered]
+docker run -it -p 1881:1880 -p 8123:8123 --name red2 --link bd:influxdb mynodered
+
+
+
+
+Grafana
+docker pull grafana/grafana
+docker run -i -p 3000:3000 --link bd:influxdb --name graf grafana/grafana 
+http://192.168.99.100:3000
+
+http://davidanguita.name/articles/simple-data-visualization-stack-with-docker-influxdb-and-grafana/
+
+
+https://github.com/grafana/grafana/issues/1789
+
+http://simonjbeaumont.com/posts/docker-dashboard/
+Build image
+docker build -t mygrafana .  [docker images -a][docker rmi mynodered]
+docker run -i -p 3001:3000 --link bd:influxdb --name graf2 mygrafana
+
+Name : bd    Type : InfluxDB     Url : http://bd:8086     
+InfluxDB Details : Database : power  User ff Password f2f!
+
+
+
+https://www.guillaume-leduc.fr/monitoring-de-votre-serveur-avec-telegraf-influxdb-et-grafana.html
+http://zoneadmin.fr/forum/threads/influxdb-grafana.490/
+
+
+
+
+docker run -p 0.0.0.0:5005:5005 -p 0.0.0.0:5005:5005/udp --name udp mendhak/udp-listener
+docker run -p 0.0.0.0:8123:8123 -p 0.0.0.0:8123:8123/udp -e UDPPORT=8123 --name udp mendhak/udp-listener
+
+docker build -t mybd . 
