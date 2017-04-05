@@ -1,0 +1,49 @@
+if (!msg || !msg.payload) {
+    node.warn("Empty payload");
+    return null;
+}
+
+//One item formating function
+const formatOneItem = function( info ) {
+    if (!info.numValue || !info.time) {
+        node.warn("Incomplete item  "+JSON.stringify(info));
+        return null;
+    }
+    let deviceId = !info.device ? 'captxx' : info.device;
+    let region = !info.region ? 'fr-xx' : info.region;
+    let item = [];
+    let timenano=info.time;//*1000000000;
+    node.warn("Time nano  "+timenano);
+    item.push({
+        numValue:info.numValue//,
+        //time:timenano
+    });
+    item.push({
+        device:deviceId,
+        region:region
+    });
+    node.warn("ItemFin : "+JSON.stringify(item));
+    return item;
+};
+
+let sentInfo = msg.payload;
+if (Array.isArray(sentInfo)) {
+    let arrayReturned = [];
+    for (let i = 0; i < sentInfo.length; i++){
+        const oneItem = formatOneItem(sentInfo[i]);
+        if (oneItem !== null) {
+            arrayReturned.push(oneItem);
+        }
+    }
+    return {payload : arrayReturned};
+} else {
+    let stringItem=msg.payload.substring(0,msg.payload.indexOf('}')+1);
+    sentInfo = JSON.parse(stringItem);
+    let arrayReturned = [];
+    const oneItem = formatOneItem(sentInfo);
+    if (oneItem !== null) {
+        arrayReturned.push(oneItem);
+    }
+    return {payload : arrayReturned};
+}
+return null;
